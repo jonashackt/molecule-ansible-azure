@@ -6,9 +6,9 @@ driver:
   name: gce
 platforms:
   - name: gcp-gce-ubuntu
-    zone: europe-west3
+    zone: europe-west3-a
     machine_type: f1-micro
-    image: ubuntu-1804-lts
+    image: ubuntu-1804-bionic-v20190212a
 
 provisioner:
   name: ansible

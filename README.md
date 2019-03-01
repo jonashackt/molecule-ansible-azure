@@ -66,9 +66,9 @@ s---
    name: gce
  platforms:
    - name: gcp-gce-ubuntu
-     zone: europe-west3
+     zone: europe-west3-a
      machine_type: f1-micro
-     image: ubuntu-1804-lts
+     image: ubuntu-1804-bionic-v20190212a 
  
  provisioner:
    name: ansible
@@ -100,20 +100,20 @@ As we already tuned the `molecule.yml` files for our other scenarios like `aws-e
 
 Also the `verifier` section has to be enhanced to gain all the described advantages like supressed deprecation warnings and the better test result overview.
 
-As you may noticed, the driver now uses `gce` and the platform is already pre-configured with a concrete `zone`, `machine_type` and a Google Compute Engine image. Here we just tune the instance name to `gcp-gce-ubuntu` and the `zone` according to our preferred region (see [region list here](https://cloud.google.com/compute/docs/regions-zones/?hl=en)).
+As you may noticed, the driver now uses `gce` and the platform is already pre-configured with a concrete `zone`, `machine_type` and a Google Compute Engine image. Here we just tune the instance name to `gcp-gce-ubuntu` and the `zone` according to our preferred region (see [available regions & zones here](https://cloud.google.com/compute/docs/regions-zones/regions-zones#available)).
 
-Let's also configure a suitable image (see [the Image list here](https://cloud.google.com/compute/docs/images?hl=en)) - for us using our "Install Docker on Ubuntu use case", we should choose `ubuntu-1804-lts`. The preconfigure [Machine Type](https://cloud.google.com/compute/docs/machine-types?hl=en) `f1-micro` should suffice for us.
+Let's also configure a suitable image (see [the Image list here](https://console.cloud.google.com/compute/images)) - for us using our "Install Docker on Ubuntu use case", we should choose `ubuntu-1804-bionic-v20190212a`. The preconfigure [Machine Type](https://cloud.google.com/compute/docs/machine-types?hl=en) `f1-micro` should suffice for us.
 
 
-### Install gcloud & apache-libcloud
+### Install needed Python packages: gcloud, apache-libcloud & pycrypto
 
 We need to have `gcloud cli` installed, which is packaged with the Google Cloud SDK. BUT don't install it this way, again use Python package manager pip instead:
 
 ```
-pip3 install gcloud apache-libcloud
+pip3 install gcloud apache-libcloud pycrypto
 ```
 
-We also need to install [Apache Libcloud](https://libcloud.apache.org/), so it's already attached to the pip install command. Libcloud is used to interact with Google Compute Engine by Molecule.
+We also need to install [Apache Libcloud](https://libcloud.apache.org/), so it's already attached to the pip install command. Libcloud is used to interact with Google Compute Engine by Molecule. Also [PyCrypto](https://pypi.org/project/pycrypto/) needs to be installed in order to let Molecule connect to GCP successfully.
 
 
 ### Create a Service Account inside GCE & configure Apache Libcloud
@@ -124,12 +124,40 @@ As [described in the docs](https://libcloud.readthedocs.io/en/latest/compute/dri
 
 Provide the service account with a speaking name like `libcloud`, then click __NEXT__. Grant the service account the `Owner` role and again click __NEXT__.
 
-Select the role `Owner` and at the tab `Grant users access to this service account (optional)` you should click on __create key__ to create and download new private key you will use to authenticate (I went with the `.json` format).
+Select the role `Owner` and at the tab `Grant users access to this service account (optional)` you should click on __create key__ to create and download new private key you will use to authenticate (I went with the `.json` format). Place the json file into a folder inside your profile:
+
+```
+cd ~
+mkdir .googlecloud
+mv ~/Downloads/yourprojectname-youridhere.json .googlecloud/yourprojectname-youridhere.json
+```
+
+Now the Google Cloud credentials json file should reside in `/Users/youruserhere/.googlecloud/yourprojectname-youridhere.json`.
 
 At the end you're service account should be listed inside your projects settings:
 
 ![google-cloud-service-account](screenshots/google-cloud-service-account.png)
 
+
+### Configure GCE credentials for Ansible gce Module
+
+If we have a more detailed look into the [create.yml](docker/molecule/gcp-gce-ubuntu/create.yml) playbook we see, that Molecule use Ansible's [gce Module](https://docs.ansible.com/ansible/latest/modules/gce_module.html) to create Google Compute Engine instances.
+
+And the `create.yml` uses 3 environment variables, that we need to set in order to execute Molecule successfully:`
+ 
+* `GCE_SERVICE_ACCOUNT_EMAIL`: Copy the email address of the created service account.
+* `GCE_CREDENTIALS_FILE`: We need to place the path to the credentials file here (like `/Users/youruserhere/.googlecloud/yourprojectname-youridhere.json`)
+* `GCE_PROJECT_ID`: Copy the project Id from the project dashboard:
+
+![google-cloud-project-dashboard](screenshots/google-cloud-project-dashboard.png)
+
+Now set all those environment variables locally:
+
+```
+export GCE_SERVICE_ACCOUNT_EMAIL=libcloud@yourprojectname-youridhere.iam.gserviceaccount.com
+export GCE_CREDENTIALS_FILE=~/.googlecloud/yourprojectname-youridhere.json
+export GCE_PROJECT_ID=yourprojectname-youridhere
+```
 
 
 ### Creating a Google Compute Engine instance with Molecule
@@ -140,6 +168,10 @@ Now we should have everything prepared. Let's try to run our first Molecule test
 ```
 molecule --debug create --scenario-name gcp-gce-ubuntu
 ```
+
+Open your Google Cloud Compute Engine dashboard and you should see the instance beeing created by Molecule:
+
+![google-cloud-first-running-instance](screenshots/google-cloud-first-running-instance.png)
 
 
 ## Add Azure to the party
