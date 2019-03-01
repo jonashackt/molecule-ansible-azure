@@ -174,6 +174,47 @@ Open your Google Cloud Compute Engine dashboard and you should see the instance 
 ![google-cloud-first-running-instance](screenshots/google-cloud-first-running-instance.png)
 
 
+### Prepare step fails with no such identity: /Users/yourUserHere/.ssh/google_compute_engine
+
+Until here, we didn't need to have the [Google Cloud SDK](https://cloud.google.com/sdk/?hl=en) installed - although I was wondering all the time, when we will need it. And here we are, the [prepare.yml](docker/molecule/gcp-gce-ubuntu/prepare.yml) (and every other) playbook will need the file `/Users/yourUserHere/.ssh/google_compute_engine` to be present to be able to connect to your GCE instances. Otherwise the Molecule execution will fail with something like the following:
+
+```
+fatal: [gcp-gce-ubuntu]: UNREACHABLE! => {
+        "changed": false,
+        "msg": "Failed to connect to the host via ssh: Warning: Permanently added '35.198.116.39' (ECDSA) to the list of known hosts.\r\nno such identity: /Users/yourUserHere/.ssh/google_compute_engine: No such file or directory\r\nyourUserHere@35.198.116.39: Permission denied (publickey).",
+        "unreachable": true
+    }
+```
+
+So now we need to install the Google Cloud SDK:
+
+```
+brew cask install google-cloud-sdk
+```
+
+If the SDK was successfully installed, we need to give our Google Cloud SDK the needed rights:
+
+```
+gcloud auth login
+```
+
+This will open your Browser and you'll need to confirm all the occurring questions.
+
+Now we're able to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine`:
+
+```
+gcloud compute ssh yourprojectname-youridhere
+```
+
+We're now also able to leverage the gcloud CLI for our needs. Let's have a look onto our running instances for example:
+
+```
+$ gcloud compute instances list
+NAME            ZONE            MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+gcp-gce-ubuntu  europe-west3-a  f1-micro                   10.156.0.5   35.198.116.39  RUNNING
+```
+
+
 ## Add Azure to the party
 
 
