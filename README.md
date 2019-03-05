@@ -214,11 +214,22 @@ NAME            ZONE            MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL
 gcp-gce-ubuntu  europe-west3-a  f1-micro                   10.156.0.5   35.198.116.39  RUNNING
 ```
 
-Now we're able to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine`:
+Now we're able to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine` along with `/Users/yourUserHere/.ssh/google_compute_known_hosts`:
 
 ```
 gcloud compute ssh gcp-gce-ubuntu
 ```
+
+Finally we should be able to run successfully locally:
+
+```
+molecule --debug create --scenario-name gcp-gce-ubuntu
+```
+
+[![asciicast](https://asciinema.org/a/231709.svg)](https://asciinema.org/a/231709)
+
+
+### Configure Travis CI to run our Molecule test automatically on Google Cloud Platform
 
 
 
