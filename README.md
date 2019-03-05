@@ -122,7 +122,7 @@ As [described in the docs](https://libcloud.readthedocs.io/en/latest/compute/dri
 
 > Select the existing or newly created project and go to IAM & Admin -> Service Accounts -> Create service account to create a new service account. 
 
-Provide the service account with a speaking name like `libcloud`, then click __NEXT__. Grant the service account the `Owner` role and again click __NEXT__.
+Provide the service account with a speaking name like `molecule`, then click __NEXT__. Grant the service account the `Owner` role and again click __NEXT__.
 
 Select the role `Owner` and at the tab `Grant users access to this service account (optional)` you should click on __create key__ to create and download new private key you will use to authenticate (I went with the `.json` format). Place the json file into a folder inside your profile:
 
@@ -174,7 +174,7 @@ Open your Google Cloud Compute Engine dashboard and you should see the instance 
 ![google-cloud-first-running-instance](screenshots/google-cloud-first-running-instance.png)
 
 
-### Prepare step fails with no such identity: /Users/yourUserHere/.ssh/google_compute_engine
+### Prepare step fails with no such identity: /Users/yourUserHere/.ssh/google_compute_engine & user@yourIpHere: Permission denied (publickey).
 
 Until here, we didn't need to have the [Google Cloud SDK](https://cloud.google.com/sdk/?hl=en) installed - although I was wondering all the time, when we will need it. And here we are, the [prepare.yml](docker/molecule/gcp-gce-ubuntu/prepare.yml) (and every other) playbook will need the file `/Users/yourUserHere/.ssh/google_compute_engine` to be present to be able to connect to your GCE instances. Otherwise the Molecule execution will fail with something like the following:
 
@@ -200,10 +200,10 @@ gcloud auth login
 
 This will open your Browser and you'll need to confirm all the occurring questions.
 
-Now we're able to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine`:
+Now configure your project Id in gcloud CLI:
 
 ```
-gcloud compute ssh yourprojectname-youridhere
+gcloud config set project testproject-233213
 ```
 
 We're now also able to leverage the gcloud CLI for our needs. Let's have a look onto our running instances for example:
@@ -213,6 +213,14 @@ $ gcloud compute instances list
 NAME            ZONE            MACHINE_TYPE  PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
 gcp-gce-ubuntu  europe-west3-a  f1-micro                   10.156.0.5   35.198.116.39  RUNNING
 ```
+
+Now we're able to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine`:
+
+```
+gcloud compute ssh gcp-gce-ubuntu
+```
+
+
 
 
 ## Add Azure to the party
