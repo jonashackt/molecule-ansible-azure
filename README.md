@@ -231,7 +231,11 @@ molecule --debug create --scenario-name gcp-gce-ubuntu
 
 ### Configure Travis CI to run our Molecule test automatically on Google Cloud Platform
 
+There are only a few sources on how to do that:
 
+https://cloud.google.com/solutions/continuous-delivery-with-travis-ci
+
+https://stackoverflow.com/questions/38762590/how-to-install-google-cloud-sdk-on-travis
 
 
 ## Add Azure to the party
