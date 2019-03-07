@@ -29,7 +29,7 @@ install:
   # Set GCP project id
 - gcloud config set project $GCP_GCE_PROJECT_ID
   # Generate GCP ssh files
-- gcloud compute ssh gcp-gce-ubuntu
+- gcloud compute ssh gcp-gce-ubuntu --zone europe-west3-a
 
 # install AWS related packages
 - pip install boto boto3

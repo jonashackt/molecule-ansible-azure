@@ -390,6 +390,14 @@ script:
 ```
 
 
+#### ERROR: (gcloud.compute.ssh) Underspecified resource [gcp-gce-ubuntu]. Specify the [--zone] flag.
+
+If the above error appears, add the zone to the `gcloud compute ssh` command inside the [.travis.yml](.travis.yml):
+
+```
+- gcloud compute ssh gcp-gce-ubuntu --zone europe-west3-a
+```
+
 
 
 ## Add Azure to the party
