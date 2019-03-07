@@ -229,6 +229,7 @@ molecule --debug create --scenario-name gcp-gce-ubuntu
 [![asciicast](https://asciinema.org/a/231709.svg)](https://asciinema.org/a/231709)
 
 
+
 ### Configure Travis CI to run our Molecule test automatically on Google Cloud Platform
 
 There are only a few sources on how to do that:
@@ -236,6 +237,116 @@ There are only a few sources on how to do that:
 https://cloud.google.com/solutions/continuous-delivery-with-travis-ci
 
 https://stackoverflow.com/questions/38762590/how-to-install-google-cloud-sdk-on-travis
+
+#### Install Google SDK in TravisCI
+
+Add the following to your [.travis.yml](.travis.yml):
+
+```
+cache:
+  directories:
+    - "$HOME/google-cloud-sdk/"
+
+install:
+...
+
+# install Google Cloud related packages
+- gcloud version || true
+- if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; export CLOUDSDK_CORE_DISABLE_PROMPTS=1; curl https://sdk.cloud.google.com | bash; fi
+# Add gcloud to $PATH
+- source /home/travis/google-cloud-sdk/path.bash.inc
+- gcloud version
+```
+
+Now this should output the `gcloud version` on TravisCI like you're used to locally:
+
+```
+$ gcloud version
+Google Cloud SDK 236.0.0
+bq 2.0.41
+core 2019.02.22
+gsutil 4.36
+```
+
+
+#### Authenticate gcloud CLI against GCP
+
+As we can't use the interactive mode of `gcloud auth login` on TravisCI, we need to find another option! Luckily the example project https://github.com/GoogleCloudPlatform/continuous-deployment-demo contains the needed steps:
+
+We use encrypted service account credentials to authenticate gcloud CLI non-interactively like this: `gcloud auth activate-service-account --key-file client-secret.json`
+
+So let's do it! First we need to encrypt our service account .json key file. [There's a documentation on how to encrypt files in TravisCI](https://docs.travis-ci.com/user/encrypting-files/) - and here's the fast way:
+
+Install TravisCI CLI locally:
+
+```
+brew install travis
+```
+
+Then login the CLI to your Travis account:
+
+```
+travis login
+```
+
+Now copy the service account .json key file `.googlecloud/yourprojectname-youridhere.json` to the project's root (__BUT don't check this into source control!__) and create an ignore entry in the [.gitignore](.gitignore) file:
+
+```
+# Google Cloud service account key file for TravisCI
+testproject-233213-45d56e1b7fc5.json
+```
+
+We can now encrypt our json key file with the `travis encrypt-file` command:
+
+```
+$ travis encrypt-file testproject-233213-45d56e1b7fc5.json 
+Detected repository as jonashackt/molecule-ansible-aws-gcp-azure, is this correct? |yes| yes
+encrypting testproject-233213-45d56e1b7fc5.json for jonashackt/molecule-ansible-aws-gcp-azure
+storing result as testproject-233213-45d56e1b7fc5.json.enc
+storing secure env variables for decryption
+
+Please add the following to your build script (before_install stage in your .travis.yml, for instance):
+
+    openssl aes-256-cbc -K $encrypted_c0be5bd8086d_key -iv $encrypted_c0be5bd8086d_iv -in testproject-233213-45d56e1b7fc5.json.enc -out testproject-233213-45d56e1b7fc5.json -d
+
+Pro Tip: You can add it automatically by running with --add.
+
+Make sure to add testproject-233213-45d56e1b7fc5.json.enc to the git repository.
+Make sure not to add testproject-233213-45d56e1b7fc5.json to the git repository.
+Commit all changes to your .travis.yml.
+```
+
+As the output already states, we need to add the `openssl aes-256-cbc -K ...` command to our [.travis.yml](.travis.yml) right after the gcloud CLI installation:
+
+```
+...
+- gcloud version
+# Decrypt Google Cloud Platform service account json key file
+- openssl aes-256-cbc -K $encrypted_c0be5bd8086d_key -iv $encrypted_c0be5bd8086d_iv -in testproject-233213-45d56e1b7fc5.json.enc -out testproject-233213-45d56e1b7fc5.json -d
+...
+``` 
+
+Don't forget to check in the __encrypted__ service account json key file `testproject-233213-45d56e1b7fc5.json.enc` into your Git repo.
+
+
+
+#### Configure the GCP project-ID & ssh config on TravisCI
+
+Now configure your GCE project id inside TravisCI settings as `GCP_GCE_PROJECT_ID` environment variable and configure the project to be used by `gcloud` CLI inside the [.travis.yml](.travis.yml):
+
+```
+- gcloud config set project $GCP_GCE_PROJECT_ID
+```
+
+Just as we are used to locally, we should now be able to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine` along with `/Users/yourUserHere/.ssh/google_compute_known_hosts` - but this time on TravisCI! Therefore we need to add the following into our [.travis.yml](.travis.yml):
+
+```
+- gcloud compute ssh gcp-gce-ubuntu
+```
+
+Now there should be everything in place to finally run our Molecule test on Travis! Therefore add the well known `molecule test --scenario-name gcp-gce-ubuntu` into your [.travis.yml](.travis.yml):
+
+
 
 
 ## Add Azure to the party
