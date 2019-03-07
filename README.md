@@ -238,6 +238,18 @@ https://cloud.google.com/solutions/continuous-delivery-with-travis-ci
 
 https://stackoverflow.com/questions/38762590/how-to-install-google-cloud-sdk-on-travis
 
+
+#### Install needed Python packages: gcloud, apache-libcloud & pycrypto
+
+Like as we're already used to locally, we need to have `gcloud cli` installed, which is packaged with the Google Cloud SDK. BUT don't install it this way, again use Python package manager pip instead:
+
+```
+pip3 install gcloud apache-libcloud pycrypto
+```
+
+We also need to install [Apache Libcloud](https://libcloud.apache.org/), so it's already attached to the pip install command. Libcloud is used to interact with Google Compute Engine by Molecule. Also [PyCrypto](https://pypi.org/project/pycrypto/) needs to be installed in order to let Molecule connect to GCP successfully.
+
+
 #### Install Google SDK in TravisCI
 
 Add the following to your [.travis.yml](.travis.yml):
