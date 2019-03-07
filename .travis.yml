@@ -3,7 +3,7 @@ sudo: false
 language: python
 
 env:
-- GCE_CREDENTIALS_FILE=../testproject-233213-45d56e1b7fc5.json GCE_SERVICE_ACCOUNT_EMAIL=molecule@testproject-233213.iam.gserviceaccount.com GCE_PROJECT_ID=testproject-233213
+- GCE_CREDENTIALS_FILE=/home/travis/build/jonashackt/molecule-ansible-aws-gcp-azure/testproject-233213-45d56e1b7fc5.json GCE_SERVICE_ACCOUNT_EMAIL=molecule@testproject-233213.iam.gserviceaccount.com GCE_PROJECT_ID=testproject-233213
 #- EC2_REGION=eu-central-1 BOTO_CONFIG="/dev/null"
 
 services:
