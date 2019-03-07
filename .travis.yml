@@ -55,4 +55,7 @@ script:
 #- molecule verify --scenario-name aws-ec2-ubuntu
 #- molecule destroy --scenario-name aws-ec2-ubuntu
 # Run Molecule test on GCP
-- molecule --debug test --scenario-name gcp-gce-ubuntu
+- molecule --debug create --scenario-name gcp-gce-ubuntu
+- molecule --debug converge --scenario-name gcp-gce-ubuntu
+- molecule --debug verify --scenario-name gcp-gce-ubuntu
+- molecule --debug destroy --scenario-name gcp-gce-ubuntu
