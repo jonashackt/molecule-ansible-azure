@@ -3,7 +3,8 @@ sudo: false
 language: python
 
 env:
-- EC2_REGION=eu-central-1 BOTO_CONFIG="/dev/null"
+- GCE_CREDENTIALS_FILE=testproject-233213-45d56e1b7fc5.json
+#- EC2_REGION=eu-central-1 BOTO_CONFIG="/dev/null"
 
 services:
 - docker
