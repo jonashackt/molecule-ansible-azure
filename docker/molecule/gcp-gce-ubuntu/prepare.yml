@@ -1,4 +1,12 @@
 ---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Execute gcloud compute ssh to obtain needed files for ssh - and exit in the same command
+      shell: gcloud compute ssh gcp-gce-ubuntu --zone=europe-west3-a --command "exit"
+      changed_when: false
+
 - name: Prepare
   hosts: all
   gather_facts: false
