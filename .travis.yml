@@ -24,9 +24,11 @@ install:
 - gcloud version
 # Decrypt Google Cloud Platform service account json key file
 - openssl aes-256-cbc -K $encrypted_c0be5bd8086d_key -iv $encrypted_c0be5bd8086d_iv -in testproject-233213-45d56e1b7fc5.json.enc -out testproject-233213-45d56e1b7fc5.json -d
-# Set GCP project id
+# Authenticate against GCP with decrypted key file
+- gcloud auth activate-service-account --key-file testproject-233213-45d56e1b7fc5.json
+  # Set GCP project id
 - gcloud config set project $GCP_GCE_PROJECT_ID
-# Generate GCP ssh files
+  # Generate GCP ssh files
 - gcloud compute ssh gcp-gce-ubuntu
 
 # install AWS related packages

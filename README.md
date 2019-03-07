@@ -328,6 +328,11 @@ As the output already states, we need to add the `openssl aes-256-cbc -K ...` co
 
 Don't forget to check in the __encrypted__ service account json key file `testproject-233213-45d56e1b7fc5.json.enc` into your Git repo.
 
+Now finally add the `gcloud auth activate-service-account` command to your [.travis.yml](.travis.yml):
+
+```
+- gcloud auth activate-service-account --key-file testproject-233213-45d56e1b7fc5.json
+```
 
 
 #### Configure the GCP project-ID & ssh config on TravisCI
@@ -344,7 +349,45 @@ Just as we are used to locally, we should now be able to generate the necessary 
 - gcloud compute ssh gcp-gce-ubuntu
 ```
 
-Now there should be everything in place to finally run our Molecule test on Travis! Therefore add the well known `molecule test --scenario-name gcp-gce-ubuntu` into your [.travis.yml](.travis.yml):
+Now there should be everything in place to finally run our Molecule test on Travis! Therefore add the well known `molecule test --scenario-name gcp-gce-ubuntu` into your Travis config. The [.travis.yml](.travis.yml) should now look something like this:
+
+```yaml
+sudo: false
+language: python
+
+services:
+- docker
+
+cache:
+  directories:
+    - "$HOME/google-cloud-sdk/"
+
+install:
+- pip install molecule
+- pip install docker-py
+
+# install Google Cloud related packages
+- gcloud version || true
+- if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; export CLOUDSDK_CORE_DISABLE_PROMPTS=1; curl https://sdk.cloud.google.com | bash; fi
+# Add gcloud to $PATH
+- source /home/travis/google-cloud-sdk/path.bash.inc
+- gcloud version
+# Decrypt Google Cloud Platform service account json key file
+- openssl aes-256-cbc -K $encrypted_c0be5bd8086d_key -iv $encrypted_c0be5bd8086d_iv -in testproject-233213-45d56e1b7fc5.json.enc -out testproject-233213-45d56e1b7fc5.json -d
+# Authenticate against GCP with decrypted key file
+- gcloud auth activate-service-account --key-file testproject-233213-45d56e1b7fc5.json
+  # Set GCP project id
+- gcloud config set project $GCP_GCE_PROJECT_ID
+  # Generate GCP ssh files
+- gcloud compute ssh gcp-gce-ubuntu
+
+script:
+- cd docker
+# Molecule Testing Travis-locally with Docker
+- molecule test
+# Run Molecule test on GCP
+- molecule test --scenario-name gcp-gce-ubuntu
+```
 
 
 
