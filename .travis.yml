@@ -29,7 +29,7 @@ script:
 # Molecule Testing Travis-locally with Docker
 #- molecule test
 # Run Molecule test on GCP
-- molecule --debug create --scenario-name gcp-gce-ubuntu
-- molecule --debug converge --scenario-name gcp-gce-ubuntu
-- molecule --debug verify --scenario-name gcp-gce-ubuntu
-- molecule --debug destroy --scenario-name gcp-gce-ubuntu
+- molecule create --scenario-name gcp-gce-ubuntu
+- molecule converge --scenario-name gcp-gce-ubuntu
+- molecule verify --scenario-name gcp-gce-ubuntu
+- molecule destroy --scenario-name gcp-gce-ubuntu
