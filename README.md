@@ -232,42 +232,16 @@ molecule --debug create --scenario-name gcp-gce-ubuntu
 
 ### Configure Travis CI to run our Molecule test automatically on Google Cloud Platform
 
-There are only a few sources on how to do that:
+There are only very few sources on how to do that:
 
 https://cloud.google.com/solutions/continuous-delivery-with-travis-ci
 
-https://stackoverflow.com/questions/38762590/how-to-install-google-cloud-sdk-on-travis
-
-
 #### Install needed Python packages: gcloud, apache-libcloud & pycrypto
 
-Like as we're already used to locally, we need to have `gcloud cli` installed, which is packaged with the Google Cloud SDK. BUT don't install it this way, again use Python package manager pip instead:
+Like as we're already used to locally, we need to have `gcloud cli` installed - alongside [Apache Libcloud](https://libcloud.apache.org/) &  [PyCrypto](https://pypi.org/project/pycrypto/). So let's add that to our [.travis.yml](.travis.yml):
 
 ```
-pip3 install gcloud apache-libcloud pycrypto
-```
-
-We also need to install [Apache Libcloud](https://libcloud.apache.org/), so it's already attached to the pip install command. Libcloud is used to interact with Google Compute Engine by Molecule. Also [PyCrypto](https://pypi.org/project/pycrypto/) needs to be installed in order to let Molecule connect to GCP successfully.
-
-
-#### Install Google SDK in TravisCI
-
-Add the following to your [.travis.yml](.travis.yml):
-
-```
-cache:
-  directories:
-    - "$HOME/google-cloud-sdk/"
-
-install:
-...
-
-# install Google Cloud related packages
-- gcloud version || true
-- if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; export CLOUDSDK_CORE_DISABLE_PROMPTS=1; curl https://sdk.cloud.google.com | bash; fi
-# Add gcloud to $PATH
-- source /home/travis/google-cloud-sdk/path.bash.inc
-- gcloud version
+pip install gcloud apache-libcloud pycrypto
 ```
 
 Now this should output the `gcloud version` on TravisCI like you're used to locally:
@@ -283,19 +257,17 @@ gsutil 4.36
 
 #### Authenticate gcloud CLI against GCP
 
-As we can't use the interactive mode of `gcloud auth login` on TravisCI, we need to find another option! Luckily the example project https://github.com/GoogleCloudPlatform/continuous-deployment-demo contains the needed steps:
-
-We use encrypted service account credentials to authenticate gcloud CLI non-interactively like this: `gcloud auth activate-service-account --key-file client-secret.json`
+As we can't use the interactive mode of `gcloud auth login` on TravisCI, we use encrypted service account credentials to authenticate gcloud CLI non-interactively like this: `gcloud auth activate-service-account --key-file client-secret.json`
 
 So let's do it! First we need to encrypt our service account .json key file. [There's a documentation on how to encrypt files in TravisCI](https://docs.travis-ci.com/user/encrypting-files/) - and here's the fast way:
 
-Install TravisCI CLI locally:
+Install TravisCI CLI on your local machine (__not on Travis!__):
 
 ```
 brew install travis
 ```
 
-Then login the CLI to your Travis account:
+Then login the CLI to your Travis account locally:
 
 ```
 travis login
@@ -306,6 +278,7 @@ Now copy the service account .json key file `.googlecloud/yourprojectname-yourid
 ```
 # Google Cloud service account key file for TravisCI
 testproject-233213-45d56e1b7fc5.json
+...
 ```
 
 We can now encrypt our json key file with the `travis encrypt-file` command:
@@ -347,79 +320,31 @@ Now finally add the `gcloud auth activate-service-account` command to your [.tra
 ```
 
 
-#### Configure the GCP project-ID & ssh config on TravisCI
+#### SSH config on TravisCI
 
-Now configure your GCE project id inside TravisCI settings as `GCP_GCE_PROJECT_ID` environment variable and configure the project to be used by `gcloud` CLI inside the [.travis.yml](.travis.yml):
+First we need to configure the GCE project id inside TravisCI settings as `GCP_GCE_PROJECT_ID` environment variable and configure the project to be used by `gcloud` CLI inside the [.travis.yml](.travis.yml):
 
 ```
 - gcloud config set project $GCP_GCE_PROJECT_ID
 ```
 
-Just as we are used to locally, we should now be able to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine` along with `/Users/yourUserHere/.ssh/google_compute_known_hosts` - but this time on TravisCI! Therefore we need to add the following into our [.travis.yml](.travis.yml):
+Just as we are used to locally, we now need to generate the necessary `/Users/yourUserHere/.ssh/google_compute_engine` along with `/Users/yourUserHere/.ssh/google_compute_known_hosts` files - but this time on TravisCI!
+
+Therefore adding `gcloud compute ssh gcp-gce-ubuntu` into our [.travis.yml](.travis.yml) would be the an idea. But running this command before Molecule actually fires up our GCP instance will result in an error - because we cannot ssh into a non-existing machine! The following error would occur:
 
 ```
-- gcloud compute ssh gcp-gce-ubuntu
+ERROR: (gcloud.compute.ssh) Underspecified resource [gcp-gce-ubuntu].
 ```
 
-Now there should be everything in place to finally run our Molecule test on Travis! Therefore add the well known `molecule test --scenario-name gcp-gce-ubuntu` into your Travis config. The [.travis.yml](.travis.yml) should now look something like this:
-
-```yaml
-sudo: false
-language: python
-
-services:
-- docker
-
-cache:
-  directories:
-    - "$HOME/google-cloud-sdk/"
-
-install:
-- pip install molecule
-- pip install docker-py
-
-# install Google Cloud related packages
-- gcloud version || true
-- if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; export CLOUDSDK_CORE_DISABLE_PROMPTS=1; curl https://sdk.cloud.google.com | bash; fi
-# Add gcloud to $PATH
-- source /home/travis/google-cloud-sdk/path.bash.inc
-- gcloud version
-# Decrypt Google Cloud Platform service account json key file
-- openssl aes-256-cbc -K $encrypted_c0be5bd8086d_key -iv $encrypted_c0be5bd8086d_iv -in testproject-233213-45d56e1b7fc5.json.enc -out testproject-233213-45d56e1b7fc5.json -d
-# Authenticate against GCP with decrypted key file
-- gcloud auth activate-service-account --key-file testproject-233213-45d56e1b7fc5.json
-  # Set GCP project id
-- gcloud config set project $GCP_GCE_PROJECT_ID
-  # Generate GCP ssh files
-- gcloud compute ssh gcp-gce-ubuntu
-
-script:
-- cd docker
-# Molecule Testing Travis-locally with Docker
-- molecule test
-# Run Molecule test on GCP
-- molecule test --scenario-name gcp-gce-ubuntu
-```
-
-
-
-#### same ssh error --> create needed ssh files
-
-To prevent `ERROR: (gcloud.compute.ssh) Underspecified resource [gcp-gce-ubuntu].`, we need to specify the `--zone` flag.
-
-```
-- gcloud compute ssh gcp-gce-ubuntu --zone europe-west3-a
-```
-
-We need a non-interactive version of `gcloud compute ssh gcp-gce-ubuntu --zone=europe-west3-a`. And the trick here is really to just use the `--command` parameter and directly exit the prompt in the same command (because we're on Travis :) :
+We need a non-interactive version of `gcloud compute ssh gcp-gce-ubuntu --zone=europe-west3-a` (we need the `--zone` flag, because we cannot choose the zone interactively here). And the trick here is really to just use the `--command` parameter and directly `exit` the prompt in the same command:
 
 ```
 gcloud compute ssh gcp-gce-ubuntu --zone=europe-west3-a --command "exit"
 ```
 
-And as you need a running machine to ssh into it, we need to do this not inside our `.travis.yml`, but our prepare.yml - so it will be executed by Molecule after the machine is up and running.
+But as you need a running machine to ssh into it, we need to do this inside the standard Molecule process. After Molecule has fired up a machine, the `prepare.yml` is executed. This is our chance! If we could run the `gcloud compute ssh` command there, we should prevent ourselves from the dreaded `yourUserHere@35.198.116.39: Permission denied (publickey).` error!
 
-Add the following to the [prepare.yml](docker/molecule/gcp-gce-ubuntu/prepare.yml):
+Therefore we add the following to the [prepare.yml](docker/molecule/gcp-gce-ubuntu/prepare.yml):
 
 ```yaml
 - hosts: localhost
@@ -434,12 +359,43 @@ Add the following to the [prepare.yml](docker/molecule/gcp-gce-ubuntu/prepare.ym
 
 ```
 
-#### ERROR: (gcloud.compute.ssh) Underspecified resource [gcp-gce-ubuntu]. Specify the [--zone] flag.
+#### Finally run Molecule on GCP
 
-If the above error appears, add the zone to the `gcloud compute ssh` command inside the [.travis.yml](.travis.yml):
+Now there should be everything in place to finally run our Molecule test on Travis! Therefore add the well known `molecule test --scenario-name gcp-gce-ubuntu` into your Travis config. The [.travis.yml](.travis.yml) should now look something like this:
 
-```
-- gcloud compute ssh gcp-gce-ubuntu --zone europe-west3-a
+```yaml
+sudo: false
+language: python
+
+env:
+- GCE_CREDENTIALS_FILE=$TRAVIS_BUILD_DIR/testproject-233213-45d56e1b7fc5.json GCE_SERVICE_ACCOUNT_EMAIL=molecule@testproject-233213.iam.gserviceaccount.com GCE_PROJECT_ID=testproject-233213
+
+services:
+- docker
+
+cache: pip
+
+install:
+- pip install molecule
+- pip install docker-py
+- pip install gcloud apache-libcloud pycrypto
+
+# Was gcloud CLI successfully installed?
+- gcloud version
+# Decrypt Google Cloud Platform service account json key file
+- openssl aes-256-cbc -K $encrypted_c0be5bd8086d_key -iv $encrypted_c0be5bd8086d_iv -in testproject-233213-45d56e1b7fc5.json.enc -out testproject-233213-45d56e1b7fc5.json -d
+# Authenticate against GCP with decrypted key file
+- gcloud auth activate-service-account --key-file testproject-233213-45d56e1b7fc5.json
+  # Set GCP project id
+- gcloud config set project $GCP_GCE_PROJECT_ID
+
+script:
+- cd docker
+# Run Molecule test on GCP
+- molecule create --scenario-name gcp-gce-ubuntu
+- molecule converge --scenario-name gcp-gce-ubuntu
+- molecule verify --scenario-name gcp-gce-ubuntu
+- molecule destroy --scenario-name gcp-gce-ubuntu
 ```
 
 
