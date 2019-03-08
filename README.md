@@ -402,6 +402,38 @@ script:
 ```
 
 
+
+#### same ssh error --> create needed ssh files
+
+To prevent `ERROR: (gcloud.compute.ssh) Underspecified resource [gcp-gce-ubuntu].`, we need to specify the `--zone` flag.
+
+```
+- gcloud compute ssh gcp-gce-ubuntu --zone europe-west3-a
+```
+
+We need a non-interactive version of `gcloud compute ssh gcp-gce-ubuntu --zone=europe-west3-a`. And the trick here is really to just use the `--command` parameter and directly exit the prompt in the same command (because we're on Travis :) :
+
+```
+gcloud compute ssh gcp-gce-ubuntu --zone=europe-west3-a --command "exit"
+```
+
+And as you need a running machine to ssh into it, we need to do this not inside our `.travis.yml`, but our prepare.yml - so it will be executed by Molecule after the machine is up and running.
+
+Add the following to the [prepare.yml](docker/molecule/gcp-gce-ubuntu/prepare.yml):
+
+```yaml
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Execute gcloud compute ssh to obtain needed files for ssh - and exit in the same command
+      shell: gcloud compute ssh gcp-gce-ubuntu --zone=europe-west3-a --command "exit"
+      changed_when: false
+
+...
+
+```
+
 #### ERROR: (gcloud.compute.ssh) Underspecified resource [gcp-gce-ubuntu]. Specify the [--zone] flag.
 
 If the above error appears, add the zone to the `gcloud compute ssh` command inside the [.travis.yml](.travis.yml):
