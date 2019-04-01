@@ -4,15 +4,18 @@
   connection: local
   gather_facts: false
   no_log: "{{ not (lookup('env', 'MOLECULE_DEBUG') | bool or molecule_yml.provisioner.log|default(false) | bool) }}"
+  vars:
+    resource_group_name: molecule
   tasks:
     - name: Destroy molecule instance(s)
-      gce:
-        instance_names: "{{ item.name }}"
+      azure_rm_virtualmachine:
+        resource_group: "{{ resource_group_name }}"
+        name: "{{ item.name }}"
         state: absent
-        zone: "{{ item.zone }}"
-        service_account_email: "{{ lookup('env', 'GCE_SERVICE_ACCOUNT_EMAIL') }}"
-        credentials_file: "{{ lookup('env', 'GCE_CREDENTIALS_FILE') }}"
-        project_id: "{{ lookup('env', 'GCE_PROJECT_ID') }}"
+        remove_on_absent:
+          - network_interfaces
+          - virtual_storage
+          - public_ips
       register: server
       with_items: "{{ molecule_yml.platforms }}"
       async: 7200
@@ -21,10 +24,11 @@
     - name: Wait for instance(s) deletion to complete
       async_status:
         jid: "{{ item.ansible_job_id }}"
-      register: gce_jobs
-      until: gce_jobs.finished
+      register: azure_jobs
+      until: azure_jobs.finished
       retries: 300
       with_items: "{{ server.results }}"
+
 
     # Mandatory configuration for Molecule to function.
 

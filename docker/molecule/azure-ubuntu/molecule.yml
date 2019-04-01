@@ -1,14 +1,15 @@
 ---
 scenario:
-  name: gcp-gce-ubuntu
+  name: azure-ubuntu
 
 driver:
-  name: gce
+  name: azure
 platforms:
-  - name: gcp-gce-ubuntu
-    zone: europe-west3-a
-    machine_type: f1-micro
-    image: ubuntu-1804-bionic-v20190212a
+  - name: azure-ubuntu
+    offer: UbuntuServer
+    publisher: Canonical
+    sku: 18.04-LTS
+    version: latest
 
 provisioner:
   name: ansible
